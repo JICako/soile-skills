@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ұлттық Грамота және Диплом Редакторы</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Cyrillic Support) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400&family=Montserrat:wght@300;400;500;600;700;800&family=Gabriela&family=Cinzel:wght@500;750;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+        }
+        .serif-font {
+            font-family: 'Playfair Display', serif;
+        }
+        .decorative-font {
+            font-family: 'Gabriela', serif;
+        }
+        .cinzel-font {
+            font-family: 'Cinzel', serif;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Түстер мен градиенттер басып шығарғанда сақталуы үшін */
+        #diploma-card {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Нақты басып шығаруға арналған стильдер (A4 Landscape) */
+        @page {
+            size: landscape;
+            margin: 0; /* Браузердің парақ нөмірі мен күнін алып тастау */
+        }
+        @media print {
+            /* Барлық басқа элементтерді жасыру */
+            body > *:not(main),
+            #editor-controls,
+            header,
+            footer,
+            .no-print {
+                display: none !important;
+            }
+            
+            html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                width: 297mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+
+            main {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 297mm !important;
+                height: 210mm !important;
+            }
+
+            #preview-container {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 297mm !important;
+                height: 210mm !important;
+                overflow: visible !important;
+            }
+
+            /* Диплом картасын толық А4 бетіне созу */
+            #diploma-card {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 297mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                border-width: 14mm !important; /* Басып шығарғанда жиек сапасы сәйкес келеді */
+                box-shadow: none !important;
+                transform: none !important;
+                page-break-inside: avoid !important;
+                border-style: solid !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Жоғарғы мәзір -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-yellow-500 to-amber-600 p-2.5 rounded-xl text-slate-950 shadow-lg shadow-yellow-500/10">
+                    <i class="fa-solid fa-award text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-yellow-400 to-amber-200 bg-clip-text text-transparent">SOILE SKILLS</h1>
+                    <p class="text-xs text-slate-400">Ресми грамоталар мен дипломдар конструкторы (Тікелей кірістірілген SVG)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Қатесіз векторлық логотиптер белсенді
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Негізгі жұмыс аймағы -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Сол жақ: Конструктор панелі (5 баған) -->
+        <section id="editor-controls" class="lg:col-span-5 space-y-6">
+            
+            <!-- Мәтіндік параметрлер -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-5">
+                <div class="border-b border-slate-800 pb-3">
+                    <h2 class="text-base font-bold flex items-center gap-2 text-yellow-400">
+                        <i class="fa-solid fa-pen-to-square"></i> Құжат мәтінін өзгерту
+                    </h2>
+                </div>
+
+                <!-- Құжат түрі -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Құжат түрі</label>
+                    <select id="doc-type" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-yellow-500 outline-none">
+                        <option value="ГРАМОТА" selected>ГРАМОТА</option>
+                        <option value="ДИПЛОМ">ДИПЛОМ</option>
+                        <option value="АЛҒЫС ХАТ">АЛҒЫС ХАТ</option>
+                        <option value="ҚҰРМЕТ ГРАМОТАСЫ">ҚҰРМЕТ ГРАМОТАСЫ</option>
+                        <option value="СЕРТИФИКАТ">СЕРТИФИКАТ</option>
+                    </select>
+                </div>
+
+                <!-- Жетістік дәрежесі (Дипломдар үшін) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Дәрежесі (болса)</label>
+                    <input type="text" id="doc-degree" value="І ДӘРЕЖЕЛІ" 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-yellow-500 outline-none">
+                </div>
+
+                <!-- Кімге беріледі (Аты-жөні) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Марапатталушының аты-жөні</label>
+                    <input type="text" id="recipient-name" value="Төлеген Ерасыл Маратұлы" 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-base font-bold text-yellow-300 focus:ring-2 focus:ring-yellow-500 outline-none">
+                </div>
+
+                <!-- Не үшін беріледі (Негізгі мәтін) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Марапаттау мәтіні</label>
+                    <textarea id="award-reason" rows="3" 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white focus:ring-2 focus:ring-yellow-500 outline-none leading-relaxed">Ақтөбе жоғары гуманитарлық колледжінің ұйымдастыруымен өткен «SoileSkills» атты республикалық шешендік өнер мен тіл шеберлігі сайысында жоғары білімі мен ерекше талантын көрсетіп, жүлделі орын иеленгені үшін марапатталады.</textarea>
+                </div>
+
+                <!-- Қол қоюшы тұлғалар және күні -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Ұйым басшысы</label>
+                        <input type="text" id="signatory-title-1" value="Колледж директоры" class="w-full bg-slate-950 border border-slate-750 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none">
+                        <input type="text" id="signatory-name-1" value="А. Қ. Қарабалаева" class="w-full bg-slate-950 border border-slate-750 rounded-lg px-3 py-1.5 text-xs text-white outline-none mt-1 font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Сайыс төрағасы</label>
+                        <input type="text" id="signatory-title-2" value="«SoileSkills» жетекшісі" class="w-full bg-slate-950 border border-slate-755 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none">
+                        <input type="text" id="signatory-name-2" value="Е. Б. Сәдуақасов" class="w-full bg-slate-950 border border-slate-755 rounded-lg px-3 py-1.5 text-xs text-white outline-none mt-1 font-semibold">
+                    </div>
+                </div>
+
+                <!-- Күні мен Мөр номері -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Өткізілген күні</label>
+                        <input type="text" id="doc-date" value="26 мамыр 2026 жыл" class="w-full bg-slate-950 border border-slate-750 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Бұйрық / Есеп №</label>
+                        <input type="text" id="doc-num" value="№ 142 бұйрық" class="w-full bg-slate-950 border border-slate-750 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Сәндеу және Стильдерді басқару -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-5">
+                <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-2"><i class="fa-solid fa-palette text-yellow-500 mr-1.5"></i> Жаңа Сәндеу және Стиль</h3>
+                
+                <!-- 1. Түстік Гамма (Тақырыптар) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2">Құжаттың негізгі түсі (Гамма)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="changeTheme('gold')" class="bg-amber-950/40 border-2 border-amber-500 text-amber-300 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all">Алтын</button>
+                        <button type="button" onclick="changeTheme('blue')" class="bg-blue-950/30 border border-blue-800 text-blue-300 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all">Көк</button>
+                        <button type="button" onclick="changeTheme('emerald')" class="bg-emerald-950/30 border border-emerald-800 text-emerald-300 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all">Жасыл</button>
+                        <button type="button" onclick="changeTheme('burgundy')" class="bg-red-950/30 border border-red-800 text-red-300 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all">Қызыл</button>
+                        <button type="button" onclick="changeTheme('midnight')" class="bg-slate-900 border border-amber-600 text-amber-400 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all col-span-1">Түнгі Алтын</button>
+                        <button type="button" onclick="changeTheme('purple')" class="bg-purple-950/30 border border-purple-800 text-purple-300 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all col-span-1">Күлгін</button>
+                    </div>
+                </div>
+
+                <!-- 2. Рамка жиектерін таңдау -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2">Жиек (Рамка) стилі</label>
+                    <select id="border-style-select" onchange="changeBorder(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option value="luxury-gold" selected>Сәнді Корольдік (Алтын)</option>
+                        <option value="classic-double">Қос Сызықты Классика</option>
+                        <option value="national-pattern">Қазақи оюлы жиек</option>
+                        <option value="minimalist">Жұқа заманауи жиек</option>
+                    </select>
+                </div>
+
+                <!-- 3. Артқы фондағы су белгісі (Watermark Pattern) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2">Фондық су белгісі өрнегі</label>
+                    <select id="pattern-select" onchange="changePattern(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option value="soileskills-horizontal" selected>SoileSkills (Көлденең мәтін)</option>
+                        <option value="soileskills-grid">SoileSkills (Қорғаныс сеткасы)</option>
+                        <option value="none">Су белгісіз таза фон</option>
+                    </select>
+                </div>
+
+                <!-- 4. - Қосымша дизайндар -->
+                <div class="flex items-center justify-between pt-1 border-t border-slate-800/60">
+                    <span class="text-xs text-slate-300">Салтанатты Алтын Медаль/Лента қосу</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-medal" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+
+                <!-- 5. Мөрдің Түсін ауыстыру -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2">Ресми мөрдің стилі мен түсі</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="changeSealColor('blue')" class="bg-blue-600/10 border border-blue-500 text-blue-400 py-1 px-2 rounded-lg text-[11px] font-medium active:scale-95 transition-all">Көк Мөр</button>
+                        <button type="button" onclick="changeSealColor('red')" class="bg-red-600/10 border border-red-500 text-red-400 py-1 px-2 rounded-lg text-[11px] font-medium active:scale-95 transition-all">Қызыл Мөр</button>
+                        <button type="button" onclick="changeSealColor('wax-gold')" class="bg-amber-600/10 border border-amber-500 text-amber-400 py-1 px-2 rounded-lg text-[11px] font-medium active:scale-95 transition-all">Алтын Балауыз</button>
+                    </div>
+                </div>
+
+                <!-- Эмблемалардың көрінуін реттеу -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2">Міндетті эмблемаларды басқару</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-800 p-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="toggle-logo-1" checked class="rounded text-amber-500 focus:ring-0">
+                            <span class="text-[10px] text-slate-300">SoileSkills</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-800 p-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="toggle-logo-2" checked class="rounded text-amber-500 focus:ring-0">
+                            <span class="text-[10px] text-slate-300">Ақтөбе Колледж</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-800 p-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="toggle-logo-3" checked class="rounded text-amber-500 focus:ring-0">
+                            <span class="text-[10px] text-slate-300">TALAP</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-800 p-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="toggle-logo-4" checked class="rounded text-amber-500 focus:ring-0">
+                            <span class="text-[10px] text-slate-300">Білім Символы</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Мөрдің көрінуін реттеу -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800/60">
+                    <span class="text-xs text-slate-300">Ресми мөрді (печать) қосу</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-seal" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Оң жақ: Грамотаның Превьюі -->
+        <section class="lg:col-span-7 flex flex-col items-center gap-6">
+            
+            <!-- Хабарлама панелі -->
+            <div id="toast" class="w-full max-w-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 rounded-xl flex items-center gap-3 text-amber-400 text-xs hidden">
+                <i class="fa-solid fa-spinner animate-spin"></i>
+                <span>Сурет дайындалуда...</span>
+            </div>
+
+            <!-- Грамота Сақтау Аймағы -->
+            <div id="preview-container" class="w-full overflow-x-auto pb-4 flex justify-center">
+                
+                <!-- Нақты өлшемді Диплом парағы -->
+                <div id="diploma-card" class="relative w-[842px] h-[595px] bg-stone-50 rounded-sm shadow-2xl flex flex-col justify-between p-8 text-slate-900 border-[14px] border-amber-500 overflow-hidden transition-all select-none"
+                     style="background: radial-gradient(circle, #fcfbf7 0%, #f4f0e4 105%); border-image: linear-gradient(to bottom, #d4af37, #aa7c11, #d4af37) 14;">
+                    
+                    <!-- ІШКІ ЖҰҚА АЛТЫН ЖИЕК СЫЗЫҚТАРЫ -->
+                    <div id="inner-frame-border" class="absolute inset-2 border border-amber-500/40 pointer-events-none z-0"></div>
+
+                    <!-- Бутафорлық фондық су белгісі өрнектері - "SoileSkills" мәтінімен алмастырылды -->
+                    <div id="watermark-bg" class="absolute inset-0 opacity-[0.05] flex items-center justify-center pointer-events-none z-0">
+                        <svg class="w-full h-full max-w-[600px]" viewBox="0 0 800 200" fill="currentColor">
+                            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="'Cinzel', serif" font-size="75" font-weight="bold" letter-spacing="12" fill="#aa7c11">SOILE SKILLS</text>
+                        </svg>
+                    </div>
+
+                    <!-- БҰРЫШТАҒЫ СӘНДІ ҚАЗАҚИ ОЮ-ӨРНЕКТЕР -->
+                    <div id="corner-tl" class="absolute top-3 left-3 w-14 h-14 text-amber-600/80 pointer-events-none z-10">
+                        <svg viewBox="0 0 100 100" class="w-full h-full fill-current">
+                            <path d="M 0,0 L 80,0 C 70,20 60,30 50,50 C 30,60 20,70 0,80 Z M 0,0 C 15,15 25,10 35,25 C 20,35 15,20 0,0 Z M 15,45 C 30,30 40,40 50,25 C 40,55 30,50 15,45 Z"></path>
+                        </svg>
+                    </div>
+                    <div id="corner-tr" class="absolute top-3 right-3 w-14 h-14 text-amber-600/80 rotate-90 pointer-events-none z-10">
+                        <svg viewBox="0 0 100 100" class="w-full h-full fill-current">
+                            <path d="M 0,0 L 80,0 C 70,20 60,30 50,50 C 30,60 20,70 0,80 Z M 0,0 C 15,15 25,10 35,25 C 20,35 15,20 0,0 Z M 15,45 C 30,30 40,40 50,25 C 40,55 30,50 15,45 Z"></path>
+                        </svg>
+                    </div>
+                    <div id="corner-bl" class="absolute bottom-3 left-3 w-14 h-14 text-amber-600/80 -rotate-90 pointer-events-none z-10">
+                        <svg viewBox="0 0 100 100" class="w-full h-full fill-current">
+                            <path d="M 0,0 L 80,0 C 70,20 60,30 50,50 C 30,60 20,70 0,80 Z M 0,0 C 15,15 25,10 35,25 C 20,35 15,20 0,0 Z M 15,45 C 30,30 40,40 50,25 C 40,55 30,50 15,45 Z"></path>
+                        </svg>
+                    </div>
+                    <div id="corner-br" class="absolute bottom-3 right-3 w-14 h-14 text-amber-600/80 rotate-180 pointer-events-none z-10">
+                        <svg viewBox="0 0 100 100" class="w-full h-full fill-current">
+                            <path d="M 0,0 L 80,0 C 70,20 60,30 50,50 C 30,60 20,70 0,80 Z M 0,0 C 15,15 25,10 35,25 C 20,35 15,20 0,0 Z M 15,45 C 30,30 40,40 50,25 C 40,55 30,50 15,45 Z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- ЖОҒАРҒЫ БӨЛІМ: МІНДЕТТІ 4 ЭМБЛЕМАЛАР (Қорғалған Векторлық SVG форматтары тікелей жазылды) -->
+                    <div class="w-full flex items-center justify-between border-b border-amber-600/20 pb-4 px-4 z-10">
+                        
+                        <!-- 1. Ақтөбе жоғары гуманитарлық колледжі (AHGK.svg) -->
+                        <div id="badge-logo-2" class="flex items-center gap-2 max-w-[200px] transition-all duration-300">
+                            <div class="w-24 h-24 flex-shrink-0">
+                                <img src="AHGK.svg" alt="AHGK" class="w-full h-full object-contain">
+                            </div>
+                            <span id="logo-text-2" class="text-[15px] font-bold text-slate-800 uppercase leading-none">Ақтөбе жоғары гуманитарлық колледжі</span>
+                        </div>
+
+                        <!-- 2. TALAP (TALAP.svg) -->
+                        <div id="badge-logo-3" class="flex items-center gap-1.5 transition-all duration-300">
+                            <div class="w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                                <img src="TALAP.svg" alt="TALAP" class="w-full h-full object-contain">
+                                <span id="logo-text-4" class="text-[15px] font-bold text-slate-800 uppercase leading-none">TALAP</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Білім/Даму символы (UMC.svg) -->
+                        <div id="badge-logo-4" class="flex items-center gap-1.5 transition-all duration-300">
+                            <div class="w-24 h-24 flex-shrink-0">   
+                                <img src="UMC.svg" alt="UMC" class="w-full h-full object-contain">
+                            </div>
+                            <span id="logo-text-4" class="text-[15px] font-bold text-slate-800 uppercase leading-none">Әдістемелік орталық</span>
+                        </div>
+
+                        <!-- 4. SoileSkills (SS.svg) -->
+                        <div id="badge-logo-1" class="flex items-center gap-1 transition-all duration-300">
+                            <div class="w-24 h-24 flex-shrink-0">
+                                <img src="SS.svg" alt="SoileSkills" class="w-full h-full object-contain">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ОРТАҢҒЫ БӨЛІМ: МАРАПАТТАУ ТЕКСТТЕРІ -->
+                    <div class="text-center my-auto px-10 space-y-4 z-10">
+                        
+                        <div class="flex justify-center -mb-2">
+                            <span id="stars-decoration" class="text-yellow-600/70 text-xs tracking-[0.3em] font-semibold">★ ★ ★ ★ ★</span>
+                        </div>
+
+                        <!-- Құжат Түрі -->
+                        <div class="space-y-1">
+                            <h2 id="badge-doc-type" class="cinzel-font text-5xl font-black tracking-widest text-amber-800 drop-shadow-sm uppercase">
+                                ГРАМОТА
+                            </h2>
+                            <h4 id="badge-doc-degree" class="decorative-font text-lg font-bold text-amber-600 tracking-widest">
+                                І ДӘРЕЖЕЛІ
+                            </h4>
+                        </div>
+
+                        <!-- Марапатталады сөзі -->
+                        <p id="badge-award-label" class="serif-font italic text-slate-500 text-sm tracking-widest">марапатталады</p>
+
+                        <!-- Марапатталушының аты-жөні -->
+                        <div class="relative py-1 border-b-2 border-dashed border-amber-600/30 max-w-lg mx-auto">
+                            <h1 id="badge-recipient" class="serif-font text-3xl font-extrabold text-slate-800 drop-shadow-xs">
+                                Төлеген Ерасыл Маратұлы
+                            </h1>
+                        </div>
+
+                        <!-- Марапаттау негіздемесі -->
+                        <p id="badge-reason" class="text-xs text-slate-600 leading-relaxed max-w-xl mx-auto font-medium">
+                            Ақтөбе жоғары гуманитарлық колледжінің ұйымдастыруымен өткен «SoileSkills» атты республикалық шешендік өнер мен тіл шеберлігі сайысында жоғары білімі мен ерекше талантын көрсетіп, жүлделі орын иеленгені үшін марапатталады.
+                        </p>
+                    </div>
+
+                    <!-- ТӨМЕНГІ БӨЛІМ: БАСШЫЛАРДЫҢ ҚОЛДАРЫ ЖӘНЕ РЕСМИ МӨР -->
+                    <div class="relative flex justify-between items-end px-6 pt-3 border-t border-amber-600/20 z-10">
+                        
+                        <!-- Сол жақ қол қоюшы -->
+                        <div class="text-left w-1/3">
+                            <p id="badge-sig-title-1" class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Колледж директоры</p>
+                            <div class="h-6 relative">
+                                <span class="absolute left-10 bottom-0 serif-font italic text-amber-700/60 font-semibold text-sm select-none"></span>
+                            </div>
+                            <p id="badge-sig-name-1" class="text-[10px] text-slate-800 font-extrabold border-t border-slate-400 pt-0.5 mt-0.5">А. Қ. Қарабалаева</p>
+                        </div>
+
+                        <!-- Ортада: МӨР -->
+                        <div id="seal-container" class="absolute left-1/2 -translate-x-1/2 -top-10 flex items-center justify-center pointer-events-none transition-all duration-300">
+                            <div id="badge-seal" class="w-24 h-24 rounded-full border-4 border-double border-blue-600/50 flex items-center justify-center rotate-12 bg-white/20 backdrop-blur-[1px] relative text-blue-600/60">
+                                <div class="absolute inset-2 border border-dashed border-current rounded-full"></div>
+                                <span class="text-[6.5px] font-bold text-center uppercase tracking-tighter leading-none px-2">
+                                    SOILE SKILLS<br>★<br>ҚАУЫМДАСТЫҒЫ
+                                </span>
+                                <div class="absolute bottom-2 text-[5px] font-mono">2026-МАМЫР</div>
+                            </div>
+                        </div>
+
+                        <!-- Оң жақ қол қоюшы -->
+                        <div class="text-right w-1/3">
+                            <p id="badge-sig-title-2" class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">«SoileSkills» жетекшісі</p>
+                            <div class="h-6 relative">
+                                <span class="absolute right-10 bottom-0 serif-font italic text-indigo-700/60 font-semibold text-sm select-none"></span>
+                            </div>
+                            <p id="badge-sig-name-2" class="text-[10px] text-slate-800 font-extrabold border-t border-slate-400 pt-0.5 mt-0.5">Е. Б. Сәдуақасов</p>
+                        </div>
+
+                    </div>
+
+                    <!-- Күні мен Регистрация № -->
+                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-12 text-[9px] text-slate-400 font-semibold">
+                        <span id="badge-date">Күні: 26 мамыр 2026 жыл</span>
+                        <span id="badge-num">Тіркеу: № 142 бұйрық</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Әрекет жасау батырмалары -->
+            <div class="w-full max-w-2xl grid grid-cols-2 gap-4">
+                <button type="button" id="btn-download" class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-extrabold py-3.5 px-6 rounded-2xl shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 text-xs sm:text-sm">
+                    <i class="fa-solid fa-file-image text-lg"></i> 
+                    Сурет түрінде сақтау (PNG)
+                </button>
+                <button type="button" id="btn-print" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 text-xs sm:text-sm">
+                    <i class="fa-solid fa-print text-lg text-yellow-400"></i> 
+                    Басып шығару (A4 / PDF)
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-400 text-center max-w-md">
+                <i class="fa-solid fa-circle-question mr-1 text-yellow-500"></i> 
+                <strong>Кеңес:</strong> Құжатты PDF ретінде сақтау үшін "Басып шығару" батырмасын басып, принтер тізімінен "Сохранить как PDF" немесе "Save as PDF" опциясын таңдаңыз.
+            </p>
+
+        </section>
+
+    </main>
+
+    <!-- Төменгі Футер -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-4 text-center mt-8 no-print">
+        <p class="text-xs text-slate-500">
+            &copy; 2026 SoileSkills & Ақтөбе жоғары гуманитарлық колледжі. Барлық эмблемалық және авторлық құқықтар қорғалған.
+        </p>
+    </footer>
+
+    <!-- JS Логикасы -->
+    <script>
+        // Негізгі Инпут элементтері
+        const docType = document.getElementById('doc-type');
+        const docDegree = document.getElementById('doc-degree');
+        const recipientName = document.getElementById('recipient-name');
+        const awardReason = document.getElementById('award-reason');
+        const signatoryTitle1 = document.getElementById('signatory-title-1');
+        const signatoryName1 = document.getElementById('signatory-name-1');
+        const signatoryTitle2 = document.getElementById('signatory-title-2');
+        const signatoryName2 = document.getElementById('signatory-name-2');
+        const docDate = document.getElementById('doc-date');
+        const docNum = document.getElementById('doc-num');
+
+        // Бейджиктегі/Дипломдағы өзгеретін мәтіндер
+        const badgeDocType = document.getElementById('badge-doc-type');
+        const badgeDocDegree = document.getElementById('badge-doc-degree');
+        const badgeRecipient = document.getElementById('badge-recipient');
+        const badgeReason = document.getElementById('badge-reason');
+        const badgeSigTitle1 = document.getElementById('badge-sig-title-1');
+        const badgeSigName1 = document.getElementById('badge-sig-name-1');
+        const badgeSigTitle2 = document.getElementById('badge-sig-title-2');
+        const badgeSigName2 = document.getElementById('badge-sig-name-2');
+        const badgeDate = document.getElementById('badge-date');
+        const badgeNum = document.getElementById('badge-num');
+
+        // Эмблемаларды басқару
+        const toggleLogo1 = document.getElementById('toggle-logo-1');
+        const toggleLogo2 = document.getElementById('toggle-logo-2');
+        const toggleLogo3 = document.getElementById('toggle-logo-3');
+        const toggleLogo4 = document.getElementById('toggle-logo-4');
+
+        const badgeLogo1 = document.getElementById('badge-logo-1');
+        const badgeLogo2 = document.getElementById('badge-logo-2');
+        const badgeLogo3 = document.getElementById('badge-logo-3');
+        const badgeLogo4 = document.getElementById('badge-logo-4');
+
+        const logoText2 = document.getElementById('logo-text-2');
+        const logoText4 = document.getElementById('logo-text-4');
+
+        const toggleSeal = document.getElementById('toggle-seal');
+        const sealContainer = document.getElementById('seal-container');
+        const badgeSeal = document.getElementById('badge-seal');
+
+        const diplomaCard = document.getElementById('diploma-card');
+        const toast = document.getElementById('toast');
+
+        // Сәндік элементтер
+        const toggleMedal = document.getElementById('toggle-medal');
+        const goldMedalDeco = document.getElementById('gold-medal-decoration');
+        const watermarkBg = document.getElementById('watermark-bg');
+        const innerFrameBorder = document.getElementById('inner-frame-border');
+
+        const starsDeco = document.getElementById('stars-decoration');
+        const badgeAwardLabel = document.getElementById('badge-award-label');
+
+        // Мәтіндерді синхрондаушы оқиғалар (EventListeners)
+        docType.addEventListener('input', () => {
+            badgeDocType.textContent = docType.value;
+            if(docType.value === "АЛҒЫС ХАТ" || docType.value === "СЕРТИФИКАТ") {
+                badgeDocDegree.style.display = 'none';
+                docDegree.disabled = true;
+            } else {
+                badgeDocDegree.style.display = 'block';
+                docDegree.disabled = false;
+            }
+        });
+
+        docDegree.addEventListener('input', () => {
+            badgeDocDegree.textContent = docDegree.value;
+        });
+
+        recipientName.addEventListener('input', () => {
+            badgeRecipient.textContent = recipientName.value || "Тұлғаның аты-жөні";
+        });
+
+        awardReason.addEventListener('input', () => {
+            badgeReason.textContent = awardReason.value;
+        });
+
+        signatoryTitle1.addEventListener('input', () => {
+            badgeSigTitle1.textContent = signatoryTitle1.value;
+        });
+
+        signatoryName1.addEventListener('input', () => {
+            badgeSigName1.textContent = signatoryName1.value;
+        });
+
+        signatoryTitle2.addEventListener('input', () => {
+            badgeSigTitle2.textContent = signatoryTitle2.value;
+        });
+
+        signatoryName2.addEventListener('input', () => {
+            badgeSigName2.textContent = signatoryName2.value;
+        });
+
+        docDate.addEventListener('input', () => {
+            badgeDate.textContent = `Күні: ${docDate.value}`;
+        });
+
+        docNum.addEventListener('input', () => {
+            badgeNum.textContent = `Тіркеу: ${docNum.value}`;
+        });
+
+        // Эмблемаларды өшіру/қосу
+        toggleLogo1.addEventListener('change', () => {
+            badgeLogo1.style.opacity = toggleLogo1.checked ? '1' : '0';
+            badgeLogo1.style.pointerEvents = toggleLogo1.checked ? 'auto' : 'none';
+        });
+
+        toggleLogo2.addEventListener('change', () => {
+            badgeLogo2.style.opacity = toggleLogo2.checked ? '1' : '0';
+            badgeLogo2.style.pointerEvents = toggleLogo2.checked ? 'auto' : 'none';
+        });
+
+        toggleLogo3.addEventListener('change', () => {
+            badgeLogo3.style.opacity = toggleLogo3.checked ? '1' : '0';
+            badgeLogo3.style.pointerEvents = toggleLogo3.checked ? 'auto' : 'none';
+        });
+
+        toggleLogo4.addEventListener('change', () => {
+            badgeLogo4.style.opacity = toggleLogo4.checked ? '1' : '0';
+            badgeLogo4.style.pointerEvents = toggleLogo4.checked ? 'auto' : 'none';
+        });
+
+        toggleSeal.addEventListener('change', () => {
+            sealContainer.style.opacity = toggleSeal.checked ? '1' : '0';
+        });
+
+        toggleMedal.addEventListener('change', () => {
+            goldMedalDeco.style.opacity = toggleMedal.checked ? '1' : '0';
+        });
+
+        // Тақырып пен түстерді өзгерту жүйесі (Кеңейтілген)
+        let currentTheme = 'gold';
+        function changeTheme(theme) {
+            currentTheme = theme;
+            
+            // Бастапқы күйге келтіру
+            diplomaCard.style.color = "#0f172a";
+            logoText2.style.color = "#1e293b";
+            logoText4.style.color = "#1e293b";
+            badgeRecipient.style.color = "#1e293b";
+            badgeReason.style.color = "#475569";
+            badgeSigName1.style.color = "#0f172a";
+            badgeSigName2.style.color = "#0f172a";
+
+            if (theme === 'gold') {
+                diplomaCard.style.background = "radial-gradient(circle, #fcfbf7 0%, #f4f0e4 105%)";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #d4af37, #aa7c11, #d4af37) 14";
+                badgeDocType.className = "cinzel-font text-5xl font-black tracking-widest text-amber-800 drop-shadow-sm uppercase";
+                badgeDocDegree.className = "decorative-font text-lg font-bold text-amber-600 tracking-widest";
+                innerFrameBorder.style.borderColor = "rgba(212, 175, 55, 0.4)";
+                starsDeco.className = "text-yellow-600/70 text-xs tracking-[0.3em] font-semibold";
+                badgeAwardLabel.className = "serif-font italic text-slate-500 text-sm tracking-widest";
+            } else if (theme === 'blue') {
+                diplomaCard.style.background = "radial-gradient(circle, #f0f4f8 0%, #dbeafe 105%)";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #1d4ed8, #1e40af, #1d4ed8) 14";
+                badgeDocType.className = "cinzel-font text-5xl font-black tracking-widest text-blue-900 drop-shadow-sm uppercase";
+                badgeDocDegree.className = "decorative-font text-lg font-bold text-blue-600 tracking-widest";
+                innerFrameBorder.style.borderColor = "rgba(29, 78, 216, 0.4)";
+                starsDeco.className = "text-blue-600/70 text-xs tracking-[0.3em] font-semibold";
+                badgeAwardLabel.className = "serif-font italic text-blue-700/60 text-sm tracking-widest";
+            } else if (theme === 'emerald') {
+                diplomaCard.style.background = "radial-gradient(circle, #f0fdf4 0%, #dcfce7 105%)";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #059669, #065f46, #059669) 14";
+                badgeDocType.className = "cinzel-font text-5xl font-black tracking-widest text-emerald-900 drop-shadow-sm uppercase";
+                badgeDocDegree.className = "decorative-font text-lg font-bold text-emerald-600 tracking-widest";
+                innerFrameBorder.style.borderColor = "rgba(5, 150, 105, 0.4)";
+                starsDeco.className = "text-emerald-600/70 text-xs tracking-[0.3em] font-semibold";
+                badgeAwardLabel.className = "serif-font italic text-emerald-700/60 text-sm tracking-widest";
+            } else if (theme === 'burgundy') {
+                diplomaCard.style.background = "radial-gradient(circle, #fff5f5 0%, #fee2e2 105%)";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #b91c1c, #991b1b, #b91c1c) 14";
+                badgeDocType.className = "cinzel-font text-5xl font-black tracking-widest text-red-900 drop-shadow-sm uppercase";
+                badgeDocDegree.className = "decorative-font text-lg font-bold text-red-600 tracking-widest";
+                innerFrameBorder.style.borderColor = "rgba(185, 28, 28, 0.4)";
+                starsDeco.className = "text-red-600/70 text-xs tracking-[0.3em] font-semibold";
+                badgeAwardLabel.className = "serif-font italic text-red-700/60 text-sm tracking-widest";
+            } else if (theme === 'midnight') {
+                diplomaCard.style.background = "radial-gradient(circle, #0f172a 0%, #020617 100%)";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #f59e0b, #d97706, #f59e0b) 14";
+                diplomaCard.style.color = "#f8fafc";
+                logoText2.style.color = "#e2e8f0";
+                logoText4.style.color = "#e2e8f0";
+                badgeRecipient.style.color = "#fbbf24";
+                badgeReason.style.color = "#cbd5e1";
+                badgeSigName1.style.color = "#f1f5f9";
+                badgeSigName2.style.color = "#f1f5f9";
+                badgeDocType.className = "cinzel-font text-5xl font-black tracking-widest text-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] uppercase";
+                badgeDocDegree.className = "decorative-font text-lg font-bold text-yellow-300 tracking-widest";
+                innerFrameBorder.style.borderColor = "rgba(245, 158, 11, 0.3)";
+                starsDeco.className = "text-amber-400/80 text-xs tracking-[0.3em] font-semibold";
+                badgeAwardLabel.className = "serif-font italic text-slate-400 text-sm tracking-widest";
+            } else if (theme === 'purple') {
+                diplomaCard.style.background = "radial-gradient(circle, #fdf4ff 0%, #fae8ff 105%)";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #a21caf, #86198f, #a21caf) 14";
+                badgeDocType.className = "cinzel-font text-5xl font-black tracking-widest text-purple-950 drop-shadow-sm uppercase";
+                badgeDocDegree.className = "decorative-font text-lg font-bold text-purple-700 tracking-widest";
+                innerFrameBorder.style.borderColor = "rgba(162, 28, 175, 0.4)";
+                starsDeco.className = "text-purple-700/70 text-xs tracking-[0.3em] font-semibold";
+                badgeAwardLabel.className = "serif-font italic text-purple-600/60 text-sm tracking-widest";
+            }
+        }
+
+        // Рамка стилін өзгерту
+        function changeBorder(borderStyle) {
+            if (borderStyle === 'luxury-gold') {
+                diplomaCard.style.borderWidth = "14px";
+                diplomaCard.style.borderStyle = "solid";
+                diplomaCard.style.borderImage = currentTheme === 'midnight' ? 
+                    "linear-gradient(to bottom, #f59e0b, #d97706, #f59e0b) 14" : 
+                    "linear-gradient(to bottom, #d4af37, #aa7c11, #d4af37) 14";
+                innerFrameBorder.style.display = "block";
+                innerFrameBorder.style.borderStyle = "solid";
+            } else if (borderStyle === 'classic-double') {
+                diplomaCard.style.borderWidth = "12px";
+                diplomaCard.style.borderStyle = "double";
+                diplomaCard.style.borderImage = "none";
+                diplomaCard.style.borderColor = "#d4af37";
+                innerFrameBorder.style.display = "block";
+                innerFrameBorder.style.borderStyle = "dashed";
+            } else if (borderStyle === 'national-pattern') {
+                diplomaCard.style.borderWidth = "16px";
+                diplomaCard.style.borderStyle = "solid";
+                diplomaCard.style.borderColor = "#c2410c";
+                diplomaCard.style.borderImage = "linear-gradient(to bottom, #aa7c11 0%, #f59e0b 50%, #aa7c11 100%) 16";
+                innerFrameBorder.style.display = "block";
+                innerFrameBorder.style.borderStyle = "dotted";
+            } else if (borderStyle === 'minimalist') {
+                diplomaCard.style.borderWidth = "4px";
+                diplomaCard.style.borderStyle = "solid";
+                diplomaCard.style.borderImage = "none";
+                diplomaCard.style.borderColor = "#94a3b8";
+                innerFrameBorder.style.display = "none";
+            }
+        }
+
+        // Фон су белгісін өзгерту - "SoileSkills" мәтіндік нұсқаларына реттелді
+        function changePattern(pattern) {
+            if (pattern === 'soileskills-horizontal') {
+                watermarkBg.innerHTML = `
+                    <svg class="w-full h-full max-w-[600px]" viewBox="0 0 800 200" fill="currentColor">
+                        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="'Cinzel', serif" font-size="75" font-weight="bold" letter-spacing="12" fill="#aa7c11">SOILE SKILLS</text>
+                    </svg>
+                `;
+                watermarkBg.className = "absolute inset-0 opacity-[0.05] flex items-center justify-center pointer-events-none z-0";
+            } else if (pattern === 'soileskills-grid') {
+                // Қауіпсіздік сеткасы ретінде қайталанатын шағын мәтіндерді құру
+                let gridHTML = `<div class="w-full h-full flex flex-col justify-around py-8 opacity-40 select-none">`;
+                for(let i = 0; i < 4; i++) {
+                    gridHTML += `
+                    <div class="flex justify-around text-[11px] font-bold tracking-[0.2em] text-amber-800/20 font-mono">
+                        <span>SOILE SKILLS</span>
+                        <span>SOILE SKILLS</span>
+                        <span>SOILE SKILLS</span>
+                    </div>`;
+                }
+                gridHTML += `</div>`;
+                watermarkBg.innerHTML = gridHTML;
+                watermarkBg.className = "absolute inset-0 opacity-[0.25] pointer-events-none z-0";
+            } else if (pattern === 'none') {
+                watermarkBg.innerHTML = "";
+            }
+        }
+
+        // Мөрдің түсін ауыстыру
+        function changeSealColor(color) {
+            badgeSeal.className = "w-24 h-24 rounded-full border-4 border-double flex items-center justify-center rotate-12 bg-white/20 backdrop-blur-[1px] relative transition-all duration-300";
+            
+            if (color === 'blue') {
+                badgeSeal.classList.add('border-blue-600/50', 'text-blue-600/60');
+            } else if (color === 'red') {
+                badgeSeal.classList.add('border-red-600/50', 'text-red-600/60');
+            } else if (color === 'wax-gold') {
+                badgeSeal.classList.add('border-amber-600/60', 'text-amber-700/80', 'bg-amber-500/10');
+            }
+        }
+
+        // Хабарлама көрсету
+        function showNotification(text) {
+            toast.querySelector('span').textContent = text;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // PNG ретінде жүктеп алу (High Quality)
+        document.getElementById('btn-download').addEventListener('click', () => {
+            showNotification("Құжат өңделіп, жоғары сапада PNG форматына көшірілуде...");
+            
+            html2canvas(diplomaCard, {
+                scale: 3, 
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const name = recipientName.value.trim().replace(/\s+/g, '_');
+                link.download = `SoileSkills_${docType.value}_${name}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showNotification("Құжат сәтті жүктелді!");
+            }).catch(err => {
+                console.error(err);
+                showNotification("Қателік орын алды, қайта байқап көріңіз.");
+            });
+        });
+
+        // Нағыз басып шығару (Print) логикасы активтендірілді
+        document.getElementById('btn-print').addEventListener('click', () => {
+            window.print(); // Браузердің басып шығару (немесе PDF сақтау) терезесін ашады
+        });
+    </script>
+</body>
+</html>
